@@ -1,0 +1,41 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+.env.*
+
+# PyInstaller output
+build/
+dist/
+*.spec
+
+# Installer files
+*.exe
+*.msi
+
+# Logs and system files
+*.log
+.DS_Store
+Thumbs.db
+
+# Streamlit specific
+.streamlit/config.toml
+.streamlit/secrets.toml
+
+# Jupyter / notebooks (if ever used)
+.ipynb_checkpoints/
+
+# CSV/Excel exports (optional)
+unmatched_entries.csv
+unmatched_entries.xlsx
+
+# IDE/editor folders
+.vscode/
+.idea/
+
+# macOS metadata
+*.DS_Store
