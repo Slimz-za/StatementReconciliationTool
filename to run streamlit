@@ -1,2 +1,7 @@
 import os
 os.system("streamlit run app.py")
+
+Run NSIS > "Compile NSI script" > select your installer.nsi.
+
+Output: StatementLedgerInstaller.exe
+Double-click it — it installs your compiled .exe to Program Fil
