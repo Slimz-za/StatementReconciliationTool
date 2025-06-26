@@ -1,0 +1,133 @@
+import streamlit as st
+import pandas as pd
+from decimal import Decimal, ROUND_HALF_UP
+import io
+
+# ---------------------- Utility Functions ----------------------
+
+def round_decimal(value):
+    return Decimal(value).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+def parse_amount(x):
+    try:
+        return Decimal(str(x).replace(',', ''))
+    except:
+        return Decimal('0.00')
+
+def reconcile_ledger(statement_df, ledger_df):
+    statement = statement_df.to_dict(orient='records')
+    ledger = ledger_df.to_dict(orient='records')
+
+    unmatched = []
+
+    # Step 1: Cancel out contra entries
+    for s in statement:
+        s_amt = parse_amount(s['amount'])
+        for l in ledger:
+            l_amt = parse_amount(l['amount'])
+            if s_amt == l_amt and s['type'] != l['type'] and not l.get('matched') and not s.get('matched'):
+                s['matched'] = l['matched'] = True
+                break
+        if not s.get('matched'):
+            unmatched.append(s)
+
+    for l in ledger:
+        if not l.get('matched'):
+            unmatched.append(l)
+
+    # Calculate totals
+    net_total = Decimal('0.00')
+    for entry in unmatched:
+        amt = parse_amount(entry['amount'])
+        if entry['type'] == 'debit':
+            net_total += amt
+        else:
+            net_total -= amt
+
+    net_total = round_decimal(net_total)
+    vat = round_decimal(net_total * Decimal('0.15'))
+    total_with_vat = round_decimal(net_total + vat)
+    discount = round_decimal(total_with_vat * Decimal('0.025'))
+    final_payment = round_decimal(total_with_vat - discount)
+
+    return {
+        "net_total": net_total,
+        "vat_15%": vat,
+        "total_with_vat": total_with_vat,
+        "discount_2.5%": discount,
+        "total_payable": final_payment,
+        "unmatched": pd.DataFrame(unmatched)
+    }
+
+# ---------------------- Streamlit App UI ----------------------
+
+st.set_page_config(page_title="Statement-Ledger Reconciliation Tool", layout="wide")
+st.title("📊 Statement-Ledger Reconciliation Tool")
+
+st.markdown("""
+Upload your **Statement** and **Ledger** CSV files for automatic reconciliation.  
+Ensure both files have columns: `id`, `amount`, `type` (`debit` or `credit`).
+""")
+
+statement_file = st.file_uploader("📄 Upload Statement CSV", type=["csv"])
+ledger_file = st.file_uploader("📄 Upload Ledger CSV", type=["csv"])
+
+if statement_file and ledger_file:
+    try:
+        statement_df = pd.read_csv(statement_file)
+        ledger_df = pd.read_csv(ledger_file)
+
+        required_cols = {'id', 'amount', 'type'}
+        if required_cols.issubset(statement_df.columns) and required_cols.issubset(ledger_df.columns):
+            result = reconcile_ledger(statement_df, ledger_df)
+            unmatched_df = result['unmatched']
+
+            st.markdown("---")
+            st.subheader("🔍 Reconciliation Breakdown")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Net Total", f"R {result['net_total']}")
+                st.metric("VAT (15%)", f"R {result['vat_15%']}")
+            with col2:
+                st.metric("Total Incl. VAT", f"R {result['total_with_vat']}")
+                st.metric("Less Discount (2.5%)", f"- R {result['discount_2.5%']}")
+
+            st.markdown("### ✅ **Total Amount Payable**")
+            st.success(f"💰 R {result['total_payable']}")
+            st.markdown("---")
+
+            st.subheader("📋 Unmatched Transactions")
+            st.dataframe(unmatched_df, use_container_width=True)
+
+            # CSV Export
+            csv_buffer = io.StringIO()
+            unmatched_df.to_csv(csv_buffer, index=False)
+            st.download_button(
+                label="⬇️ Download Unmatched (CSV)",
+                data=csv_buffer.getvalue(),
+                file_name="unmatched_entries.csv",
+                mime="text/csv"
+            )
+
+            # Excel Export
+            excel_buffer = io.BytesIO()
+            with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                unmatched_df.to_excel(writer, index=False, sheet_name='Unmatched Entries')
+                worksheet = writer.sheets['Unmatched Entries']
+                for i, col in enumerate(unmatched_df.columns):
+                    col_len = unmatched_df[col].astype(str).map(len).max()
+                    worksheet.set_column(i, i, col_len + 5)
+            st.download_button(
+                label="⬇️ Download Unmatched (Excel)",
+                data=excel_buffer.getvalue(),
+                file_name="unmatched_entries.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+        else:
+            st.error("❌ Missing required columns: 'id', 'amount', 'type' in one or both files.")
+    except Exception as e:
+        st.error(f"❗ An error occurred during processing:\n\n{e}")
+else:
+    st.info("📁 Please upload both Statement and Ledger CSV files to begin.")
