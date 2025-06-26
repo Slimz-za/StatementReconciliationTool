@@ -128,3 +128,8 @@ if statement_file and ledger_file:
         st.error(f"❗ An error occurred during processing:\n\n{e}")
 else:
     st.info("📁 Please upload both Statement and Ledger CSV files to begin.")
+
+Run NSIS > "Compile NSI script" > select your installer.nsi.
+
+Output: StatementLedgerInstaller.exe
+Double-click it — it installs your compiled .exe to Program Fil
