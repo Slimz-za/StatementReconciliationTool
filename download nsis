@@ -1,0 +1,22 @@
+!define APP_NAME "StatementLedgerReconciliation"
+!define EXE_NAME "main.exe"
+!define OUTPUT_NAME "StatementLedgerInstaller"
+
+OutFile "${OUTPUT_NAME}.exe"
+InstallDir "$PROGRAMFILES\\${APP_NAME}"
+RequestExecutionLevel admin
+
+Page directory
+Page instfiles
+
+Section ""
+  SetOutPath $INSTDIR
+  File "dist\main.exe"
+  WriteUninstaller "$INSTDIR\Uninstall.exe"
+SectionEnd
+
+Section "Uninstall"
+  Delete "$INSTDIR\main.exe"
+  Delete "$INSTDIR\Uninstall.exe"
+  RMDir $INSTDIR
+SectionEnd
