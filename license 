@@ -1,0 +1,22 @@
+---
+
+### 🌐 3. Create a GitHub Repo
+
+1. Go to: [https://github.com/new](https://github.com/new)
+2. **Repo name**: `StatementReconciliationTool`
+3. Leave everything blank (don’t init with README)
+4. Click **Create repository**
+
+---
+
+### 🧑‍💻 4. Upload via Git
+
+Open a terminal in your folder and run:
+
+```bash
+git init
+git add .
+git commit -m "Initial commit: Streamlit reconciliation tool"
+git branch -M main
+git remote add origin https://github.com/yourusername/StatementReconciliationTool.git
+git push -u origin main
